@@ -1,0 +1,212 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// 1. Clés d'activation commerciales (2 000 FCFA)
+model ActivationKey {
+  id          String    @id @default(uuid())
+  code        String    @unique 
+  status      KeyStatus @default(ACTIVE)
+  activatedAt DateTime?
+  expiresAt   DateTime?
+
+  createdBy   String? 
+  user   User?     @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  devices Device?
+
+  @@index([status, expiresAt])
+  @@index([createdAt]) 
+  @@index([createdBy]) 
+  @@map("activation_keys")
+}
+
+// 2. Dispositifs / Appareils liés à une clé
+model Device {
+  id              String        @id @default(uuid())
+  fingerprint     String        @unique // Handshake ID ou UUID de l'appareil
+  activationKeyId String        @unique
+  activationKey   ActivationKey @relation(fields: [activationKeyId], references: [id], onDelete: Cascade)
+  isActive        Boolean       @default(true)
+  lastActiveAt    DateTime      @default(now())
+  createdAt       DateTime      @default(now())
+
+  // Relations
+  analysisLogs AnalysisLog[]
+
+  @@map("devices")
+}
+
+// 3. Métadonnées d'analyse (Anonymisées / Statistiques)
+model AnalysisLog {
+  id           String          @id @default(uuid())
+  deviceId     String
+  device       Device          @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  analysisType AnalysisType // IMAGE, LINK, MESSAGE, PAY_CHECK
+  riskLevel    RiskLevel // LOW, MEDIUM, HIGH
+  confidence   ConfidenceLevel // LOW, MEDIUM, HIGH
+  createdAt    DateTime        @default(now())
+
+  history History?
+
+  durationMs Int?
+
+  @@index([deviceId])
+  @@index([analysisType, createdAt])
+  @@index([riskLevel, createdAt])
+  @@index([createdAt])
+  @@map("analysis_logs")
+}
+
+model User {
+  id String @id @default(uuid())
+
+  name String?
+
+  email String? @unique
+  phone String? @unique
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userRole  UserRole @default(USER)
+
+  activationKeys ActivationKey[]
+
+  identities AuthIdentity[]
+  sessions   UserSession[]
+
+  
+
+  @@map("users")
+}
+
+model AuthIdentity {
+  id                String @id @default(uuid())
+  userId            String
+  user              User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  provider          AuthProvider
+  providerId        String
+  passwordHash      String?
+
+  resetPasswordToken String?  @unique
+  resetPasswordExpires DateTime?
+
+  createdAt          DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([provider, providerId])
+  @@index([userId])
+  @@map("auth_identities")
+}
+
+model UserSession {
+  id              String @id @default(uuid())
+  userId          String
+  user            User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  refreshTokenHash    String
+  expiresAt       DateTime
+  revokedAt       DateTime?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("user_sessions")
+}
+
+model History {
+  id            String @id @default(uuid())
+
+  analysisLogId String      @unique
+  analysisLog   AnalysisLog @relation(fields: [analysisLogId], references: [id], onDelete: Cascade)
+
+  result        Json
+
+  createdAt     DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("history")
+}
+
+model ActivityLog {
+  id            String  @id   @default(uuid())
+  title         String
+  type          ActivityType
+  description   String
+  createdAt     DateTime      @default(now())
+
+  @@index([type])
+  @@index([createdAt])
+  @@map("activity_logs")
+}
+
+// Enums
+enum KeyStatus {
+  ACTIVE
+  USED
+  EXPIRED
+  REVOKED
+}
+
+enum AnalysisType {
+  IMAGE
+  LINK
+  MESSAGE
+  PAY_CHECK
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ConfidenceLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum UserRole {
+  USER
+  SUPER_ADMIN
+  ADMIN
+}
+
+enum AuthProvider {
+  PASSWORD
+  GOOGLE
+  APPLE
+  PHONE
+  FACEBOOK
+}
+
+enum ActivityType {
+  KEY_GENERATED
+  KEY_ACTIVATED
+  KEY_EXPIRED
+  KEY_REVOKED
+  ANALYSIS
+  ADMIN_LOGIN
+}
