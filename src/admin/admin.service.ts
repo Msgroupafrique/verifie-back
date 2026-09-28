@@ -24,8 +24,8 @@ export class AdminService {
     private readonly activationQueue: Queue,
   ) { }
 
-  private readonly BATCH_SIZE = 10;
-  private readonly TOTAL_KEYS_TO_GENERATE = 20;
+  private readonly BATCH_SIZE = 1_000;
+  private readonly TOTAL_KEYS_TO_GENERATE = 1_000_000;
 
   private readonly logger = new Logger(AdminService.name)
 
@@ -157,12 +157,12 @@ export class AdminService {
 
   async deleteTestKeys() {
     const result = await this.prisma.activationKey.deleteMany({
-      where: {
+     /* where: {
         devices: null,
-        createdAt: {
+        /*createdAt: {
           gte: new Date(Date.now() - 10 * 60 * 1000),
         },
-      },
+      },*/
     });
 
     this.logger.log(`${result.count} clés de test supprimées.`);

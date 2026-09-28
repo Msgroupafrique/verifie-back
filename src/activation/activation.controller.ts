@@ -13,9 +13,9 @@ export class ActivationController {
     return this.activationService.activate(dto);
   }
 
-  @Get('status/:deviceIde')
+  @Get('status/:deviceId')
   async checkStatus(@Param('deviceId') deviceId: string) {
-    console.log('device and fingerprint: ', deviceId)
+    console.log('device: ', deviceId)
     return this.activationService.checkStatus(deviceId);
   }
 
