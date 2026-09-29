@@ -4,7 +4,6 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { randomBytes } from 'crypto';
 
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateKeyDto } from './dto/create-key.dto';

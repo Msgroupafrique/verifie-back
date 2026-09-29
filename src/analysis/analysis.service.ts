@@ -11,7 +11,7 @@ import { CreateImageAnalysisDto } from './dto/create-image-analysis.dto';
 import { LinkAnalyzerService } from './link-analyzer.service';
 import { CreateLinkAnalysisDto } from './dto/create-link.dto';
 import { CreatePaymentAnalysisDto } from './dto/create-paiement.dto';
-import { Prisma } from 'generated/prisma/client';
+import { Prisma } from '../generated/prisma/client';
 import { ActivityService } from 'src/activity/activity.service';
 
 export interface GeminiAnalysis {
