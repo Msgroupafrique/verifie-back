@@ -116,7 +116,7 @@ export class ActivationService {
     if (!device) {
       return {
         success: true,
-        active: true,
+        active: false,
         status: 'NOT_FOUND',
         message: 'Appareil introuvable.',
       };
@@ -152,7 +152,7 @@ export class ActivationService {
 
     return {
       success: true,
-      active: false,
+      active: true,
       status: 'ACTIVE',
       message: "Appareil actif.",
     };
