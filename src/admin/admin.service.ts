@@ -154,24 +154,6 @@ export class AdminService {
     }
   }
 
-  async deleteTestKeys() {
-    const result = await this.prisma.activationKey.deleteMany({
-     /* where: {
-        devices: null,
-        /*createdAt: {
-          gte: new Date(Date.now() - 10 * 60 * 1000),
-        },
-      },*/
-    });
-
-    this.logger.log(`${result.count} clés de test supprimées.`);
-
-    return {
-      success: true,
-      deleted: result.count,
-    };
-  }
-
   async getGenerationJobStatus(jobId: string) {
     const job = await this.activationQueue.getJob(jobId); 
     if (!job) { 
@@ -190,5 +172,88 @@ export class AdminService {
         batchSize: job.data.batchSize, 
         expiresAt: job.data.expiresAt, 
       },
-    } }
+    } 
   }
+
+
+  async deleteUnusedKeys({
+    dryRun = true,
+    batchSize = 1000,
+    createdAfter,
+  }: {
+    dryRun?: boolean;
+    batchSize?: number;
+    createdAfter?: Date; 
+  } = {}) {
+    const where: Prisma.ActivationKeyWhereInput = {
+      devices: null, 
+      ...(createdAfter ? { createdAt: { gte: createdAfter } } : {}),
+    };
+
+    const total = await this.prisma.activationKey.count({ where });
+
+    if (dryRun) {
+      return { dryRun: true, wouldDelete: total };
+    }
+
+    let deleted = 0;
+    while (deleted < total) {
+      const batch = await this.prisma.activationKey.findMany({
+        where,
+        select: { id: true },
+        take: batchSize,
+      });
+
+      if (batch.length === 0) break;
+
+      const { count } = await this.prisma.activationKey.deleteMany({
+        where: { id: { in: batch.map((k) => k.id) } },
+      });
+
+      deleted += count;
+      this.logger.log(`Suppression clés test: ${deleted}/${total}`);
+
+      // petite pause pour ne pas saturer la connexion Postgres sur Render Hobby
+      await new Promise((r) => setTimeout(r, 200));
+    }
+
+    return { dryRun: false, deleted };
+  }
+
+  // Extrait à ajouter dans ton ActivationService (ou AdminService) NestJS
+
+  async deleteAllKeys({
+    dryRun = true,
+    batchSize = 1000,
+  }: {
+    dryRun?: boolean;
+    batchSize?: number;
+  } = {}) {
+    const total = await this.prisma.activationKey.count();
+
+    if (dryRun) {
+      return { dryRun: true, wouldDelete: total };
+    }
+
+    let deleted = 0;
+    while (deleted < total) {
+      const batch = await this.prisma.activationKey.findMany({
+        select: { id: true },
+        take: batchSize,
+      });
+
+      if (batch.length === 0) break;
+
+      const { count } = await this.prisma.activationKey.deleteMany({
+        where: { id: { in: batch.map((k) => k.id) } },
+      });
+
+      deleted += count;
+      this.logger.log(`Suppression totale clés: ${deleted}/${total}`);
+
+      await new Promise((r) => setTimeout(r, 200));
+    }
+
+    return { dryRun: false, deleted };
+  }
+}

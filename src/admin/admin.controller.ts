@@ -46,8 +46,10 @@ findAll(@Query() query: ListKeysDto) {
 
   @Delete('keys/test')
   @UseGuards(JwtAuthGuard)
-  deleteTestKeys() {
-    return this.adminService.deleteTestKeys();
+  deleteTestKeys(@Query('dryRun') dryRun?: string) {
+    return this.adminService.deleteAllKeys({
+       dryRun: dryRun !== 'false',
+    })
   }
 
 }
