@@ -48,8 +48,8 @@ export class AdminService {
     if (dto.expiresInDays) {
       expiresAt = new Date();
 
-      //expiresAt.setDate(expiresAt.getDate() + dto.expiresInDays);
-      expiresAt.setMinutes(expiresAt.getMinutes() + dto.expiresInDays);
+      expiresAt.setDate(expiresAt.getDate() + dto.expiresInDays);
+      //expiresAt.setMinutes(expiresAt.getMinutes() + dto.expiresInDays);
     }
 
     const job = await this.activationQueue.add(
