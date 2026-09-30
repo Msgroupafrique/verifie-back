@@ -8,7 +8,7 @@ import { AnalysisModule } from './analysis/analysis.module';
 import { HistoryModule } from './history/history.module';
 import { AdminModule } from './admin/admin.module';
 import { AiModule } from './ai/ai.module';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { UserSessionModule } from './user-session/user-session.module';
 import { UsersModule } from './users/users.module';
@@ -24,12 +24,38 @@ import { ActivityModule } from './activity/activity.module';
       envFilePath: '.env',
     }),
 
-    BullModule.forRoot({
+    /*BullModule.forRoot({
       connection: {
         host: 'localhost',
         port: 6379,
       }
+    }),*/
+
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => {
+        const redisUrl = configService.getOrThrow<string>('REDIS_URL');
+
+        if (redisUrl) {
+          return {
+            connection: {
+              url: redisUrl,
+              maxRetriesPerRequest: null,
+            },
+          };
+        }
+
+        return {
+          connection: {
+            host: 'localhost',
+            port: 6379,
+            maxRetriesPerRequest: null,
+          },
+        };
+      },
+      inject: [ConfigService],
     }),
+
     ScheduleModule.forRoot(),
     PrismaModule, 
     ActivationModule, 
